@@ -1,0 +1,5 @@
+<library path="auto_aim">
+  <class type="auto_aim::Controller" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
+</library>
