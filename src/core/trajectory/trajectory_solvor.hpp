@@ -9,7 +9,7 @@
 #include <fast_tf/rcl.hpp>
 #include <rmcs_description/tf_description.hpp>
 
-#include "core/tracker/tracker_struct.h"
+#include "core/tracker/Target.hpp"
 
 class Trajectory_Solvor {
 public:
@@ -17,8 +17,7 @@ public:
      * \return 返回云台偏移量，格式为tuple[yaw, pitch]，单位弧度制，遵循右手定则。
      */
     static std::tuple<double, double> GetShotAngle(
-        const TargetInterface& target, const double& speed, bool predict_movement = true,
-        double time_shift = 0) {
+        Target& target, const double& speed, bool predict_movement = true, double time_shift = 0) {
         std::tuple<double, double> result;
         auto& [yaw, pitch] = result;
         double fly_time    = 0;

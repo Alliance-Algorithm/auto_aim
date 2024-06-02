@@ -1,7 +1,9 @@
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <chrono>
 #include <cstdint>
 #include <fast_tf/impl/cast.hpp>
+#include <string>
 #include <thread>
 
 #include <eigen3/Eigen/Dense>
@@ -17,7 +19,8 @@
 // #include "Control/Gimbal/GimbalInfantry.h"
 // #include "Core/Tracker/TrackerStruct.h"
 // #include "Core/Trajectory/Common/Trajectory_V1.h"
-#include "core/tracker/tracker_struct.h"
+#include "core/identifier/armor/armor_identifier.hpp"
+#include "core/tracker/Target.hpp"
 #include "core/trajectory/trajectory_solvor.hpp"
 
 namespace auto_aim {
@@ -46,6 +49,8 @@ public:
         yaw_error_               = get_parameter("yaw_error").as_double();
         pitch_error_             = get_parameter("pitch_error").as_double();
         gimbal_predict_duration_ = get_parameter("gimbal_predict_duration").as_int();
+        armor_model_path_        = get_parameter("armor_model_path").as_string();
+        buff_model_path_         = get_parameter("buff_model_path").as_string();
     }
 
     ~Controller() {
@@ -68,6 +73,14 @@ public:
                 } else {
                     camera_profile.invert_image = false;
                 }
+
+                hikcamera::ImageCapturer img_capture(camera_profile);
+
+                auto package_share_directory =
+                    ament_index_cpp::get_package_share_directory("auto_aim");
+
+                auto armor_identifier =
+                    ArmorIdentifier(package_share_directory + armor_model_path_);
             }};
             return;
         }
@@ -128,7 +141,10 @@ private:
     int64_t exposure_time_;
 
     Trajectory_Solvor trajectory_{};
-    TargetInterface* target_;
+    Target* target_;
+
+    std::string armor_model_path_;
+    std::string buff_model_path_;
 
     double pitch_error_;
     double yaw_error_;
