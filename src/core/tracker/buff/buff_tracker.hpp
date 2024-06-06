@@ -1,5 +1,5 @@
 /**
- * @file armor_tracker.hpp
+ * @file buff_tracker.hpp
  * @author Lorenzo Feng (lorenzo.feng@njust.edu.cn)
  * @brief
  * @version 0.1
@@ -15,10 +15,12 @@
 
 #include "core/tracker/tracker.hpp"
 
-class ArmorTracker : public Tracker {
+class BuffTracker : public Tracker {
 public:
-    explicit ArmorTracker(int64_t predict_duration);
+    explicit BuffTracker(int64_t predict_duration);
     std::unique_ptr<Target> Update(
         const std::vector<ArmorPlate3d>& armors,
         std::chrono::steady_clock::time_point timestamp) override;
+
+    void ResetAll();
 };

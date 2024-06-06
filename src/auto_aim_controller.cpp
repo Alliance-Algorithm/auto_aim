@@ -3,6 +3,8 @@
 #include <chrono>
 #include <cstdint>
 #include <fast_tf/impl/cast.hpp>
+#include <memory>
+#include <rclcpp/utilities.hpp>
 #include <string>
 #include <thread>
 
@@ -16,11 +18,10 @@
 #include <rmcs_description/tf_description.hpp>
 #include <rmcs_executor/component.hpp>
 
-// #include "Control/Gimbal/GimbalInfantry.h"
-// #include "Core/Tracker/TrackerStruct.h"
-// #include "Core/Trajectory/Common/Trajectory_V1.h"
-#include "core/identifier/armor/armor_identifier.hpp"
-#include "core/tracker/Target.hpp"
+#include "core/identifier/identifier_factory.hpp"
+#include "core/tracker/armor/armor_tracker.hpp"
+#include "core/tracker/buff/buff_tracker.hpp"
+#include "core/tracker/tracker_factory.hpp"
 #include "core/trajectory/trajectory_solvor.hpp"
 
 namespace auto_aim {
@@ -33,7 +34,6 @@ public:
         : Node(
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)) {
-        // ros_util::init();
 
         register_input("/predefined/update_count", update_count_);
         register_input("/tf", tf_);
@@ -61,10 +61,6 @@ public:
     void update() override {
         if (*update_count_ == 0) {
             gimbal_thread_ = std::thread{[this]() {
-                // gimbal_->Always(
-                // target_, timestamp_, color_, robot_id_,
-                // std::chrono::milliseconds(exposure_time_), buff_mode_, armor_predict_duration_,
-                // buff_predict_duration_);
                 hikcamera::ImageCapturer::CameraProfile camera_profile;
                 camera_profile.exposure_time = std::chrono::milliseconds(exposure_time_);
                 camera_profile.gain          = 16.9807;
@@ -79,16 +75,40 @@ public:
                 auto package_share_directory =
                     ament_index_cpp::get_package_share_directory("auto_aim");
 
-                auto armor_identifier =
-                    ArmorIdentifier(package_share_directory + armor_model_path_);
+                auto armor_identifier = IdentifierFactory<ArmorIdentifier>::Create(
+                    package_share_directory + armor_model_path_);
+                auto buff_identifier = IdentifierFactory<BuffIdentifier>::Create(
+                    package_share_directory + buff_model_path_);
+
+                auto armor_tracker = TrackerFactory<ArmorTracker>::Create(armor_predict_duration_);
+                auto buff_tracker  = TrackerFactory<BuffTracker>::Create(buff_predict_duration_);
+
+                bool buff_enabled = false;
+
+                while (rclcpp::ok()) {
+                    auto img = img_capture.read();
+                    // auto timestamp = std::chrono::steady_clock::now();
+                    do {
+                        if (!buff_enabled && *buff_mode_) {
+                            buff_tracker->ResetAll();
+                        }
+                        buff_enabled = *buff_mode_;
+
+                        if (!buff_enabled) {
+                            auto armors = armor_identifier->Identify(img, *color_);
+                            // auto armors3d = ArmorPnPSolver::SolveAll(armors);
+                            // if (auto target = armor_tracker.Update(armors3d, timestamp)) {
+                            //     timestamp_ = timestamp;
+                            //     target_    = target.release();
+                            //     break;
+                            // }
+                        } else {
+                        }
+                    } while (false);
+                }
             }};
             return;
         }
-
-        // auto gimbal_pose =
-        //     fast_tf::lookup_transform<rmcs_description::OdomImu,
-        //     rmcs_description::PitchLink>(*tf_);
-        // transformer::SetRotation<GimbalGyro, GimbalLink>(gimbal_pose);
 
         auto target = target_;
         if (!target_) {

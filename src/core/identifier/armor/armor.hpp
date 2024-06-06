@@ -10,9 +10,10 @@
  */
 #pragma once
 
-#include <opencv2/core/types.hpp>
 #include <stdexcept>
 #include <utility>
+
+#include <opencv2/core/types.hpp>
 
 struct LightBar {
     cv::Point2f top, bottom;

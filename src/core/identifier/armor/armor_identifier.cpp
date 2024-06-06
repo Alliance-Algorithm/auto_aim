@@ -1,23 +1,13 @@
-
-
 #include "armor_identifier.hpp"
-#include <rmcs_core/msgs.hpp>
+#include <string>
 
-class ArmorIdentifier::Impl {
-public:
-    explicit Impl(std::string model_path)
-        : model_path_(std::move(model_path)) {}
-    std::vector<ArmorPlate> Identify(const cv::Mat& img, rmcs_core::msgs::RoboticColor targetColor);
+// TODO
 
-private:
-    std::string model_path_;
-};
+ArmorIdentifier::ArmorIdentifier(const std::string& model_path) { (void)model_path; }
 
-std::vector<ArmorPlate>
-    ArmorIdentifier::Identify(const cv::Mat& img, rmcs_core::msgs::RoboticColor targetColor) {
-    return pImpl->Identify(img, targetColor);
+std::vector<ArmorPlate> ArmorIdentifier::Identify(
+    const cv::Mat& img, const rmcs_core::msgs::RoboticColor& target_color) {
+    (void)img;
+    (void)target_color;
+    return {};
 }
-
-ArmorIdentifier::ArmorIdentifier(const std::string& model_path)
-    : pImpl(new Impl{model_path}) {}
-ArmorIdentifier::~ArmorIdentifier() = default;

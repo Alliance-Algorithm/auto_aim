@@ -9,7 +9,7 @@
 #include <fast_tf/rcl.hpp>
 #include <rmcs_description/tf_description.hpp>
 
-#include "core/tracker/Target.hpp"
+#include "core/tracker/target.hpp"
 
 class Trajectory_Solvor {
 public:
@@ -21,7 +21,7 @@ public:
         std::tuple<double, double> result;
         auto& [yaw, pitch] = result;
         double fly_time    = 0;
-        rmcs_description::MuzzleLink::DirectionVector pos;
+        rmcs_description::OdomImu::Position pos;
         GetShotAngleInternal(target.Predict(time_shift), speed, yaw, pitch, fly_time);
         if (predict_movement)
             GetShotAngleInternal(
@@ -34,10 +34,9 @@ public:
     }
 
     static void GetShotAngleInternal(
-        const rmcs_description::MuzzleLink::DirectionVector& target_pos, const double speed,
-        double& yaw, double& pitch, double& fly_time) {
-        rmcs_description::MuzzleLink::DirectionVector shotVec =
-            GetShotVector(target_pos, speed, fly_time);
+        const rmcs_description::OdomImu::Position& target_pos, const double speed, double& yaw,
+        double& pitch, double& fly_time) {
+        auto shotVec = GetShotVector(target_pos, speed, fly_time);
 
         yaw = atan2(shotVec->y(), shotVec->x());
         pitch =
@@ -45,7 +44,7 @@ public:
     }
 
     [[nodiscard]] static rmcs_description::MuzzleLink::DirectionVector GetShotVector(
-        const rmcs_description::MuzzleLink::DirectionVector& target_pos, const double speed,
+        const rmcs_description::OdomImu::Position& target_pos, const double speed,
         double& fly_time) {
         // 不考虑空气阻力
 
