@@ -15,13 +15,15 @@
 #include <optional>
 #include <rmcs_core/msgs.hpp>
 
-template <typename ResultType, typename... Args>
+using namespace auto_aim;
+
+template <typename ResultType>
 class Identifier {
 public:
     virtual ~Identifier(){};
-    virtual ResultType Identify(Args... args) = 0;
+    template <class... Args>
+    ResultType Identify(Args... args);
 };
 
-typedef Identifier<std::vector<ArmorPlate>, const cv::Mat&, const rmcs_core::msgs::RoboticColor&>
-    ArmorIdentifierImpl;
-typedef Identifier<std::optional<BuffPlate>, const cv::Mat&> BuffIdentifierImpl;
+typedef Identifier<std::vector<ArmorPlate>> ArmorIdentifierInterface;
+typedef Identifier<std::optional<BuffPlate>> BuffIdentifierInterface;

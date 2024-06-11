@@ -1,27 +1,27 @@
 
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <chrono>
 #include <cstdint>
-#include <fast_tf/impl/cast.hpp>
-#include <memory>
-#include <rclcpp/utilities.hpp>
 #include <string>
 #include <thread>
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <eigen3/Eigen/Dense>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
+#include <rclcpp/utilities.hpp>
 
+#include <fast_tf/impl/cast.hpp>
 #include <hikcamera/image_capturer.hpp>
 #include <rmcs_core/msgs.hpp>
 #include <rmcs_description/tf_description.hpp>
 #include <rmcs_executor/component.hpp>
 
-#include "core/identifier/identifier_factory.hpp"
-#include "core/tracker/armor/armor_tracker.hpp"
-#include "core/tracker/buff/buff_tracker.hpp"
-#include "core/tracker/tracker_factory.hpp"
+#include "core/identifier/armor/armor_identifier.hpp"
+#include "core/identifier/buff/buff_identifier.hpp"
+#include "core/pnpsolver/armor/armor_pnp_solver.hpp"
+#include "core/pnpsolver/buff/buff_pnp_solver.hpp"
+#include "core/tracker/target.hpp"
 #include "core/trajectory/trajectory_solvor.hpp"
 
 namespace auto_aim {
@@ -51,6 +51,13 @@ public:
         gimbal_predict_duration_ = get_parameter("gimbal_predict_duration").as_int();
         armor_model_path_        = get_parameter("armor_model_path").as_string();
         buff_model_path_         = get_parameter("buff_model_path").as_string();
+        fx                       = get_parameter("fx").as_double();
+        fy                       = get_parameter("fy").as_double();
+        cx                       = get_parameter("cx").as_double();
+        cy                       = get_parameter("cy").as_double();
+        k1                       = get_parameter("k1").as_double();
+        k2                       = get_parameter("k2").as_double();
+        k3                       = get_parameter("k3").as_double();
     }
 
     ~Controller() {
@@ -75,39 +82,36 @@ public:
                 auto package_share_directory =
                     ament_index_cpp::get_package_share_directory("auto_aim");
 
-                auto armor_identifier = IdentifierFactory<ArmorIdentifier>::Create(
-                    package_share_directory + armor_model_path_);
-                auto buff_identifier = IdentifierFactory<BuffIdentifier>::Create(
-                    package_share_directory + buff_model_path_);
+                auto armor_identifier =
+                    ArmorIdentifier(package_share_directory + armor_model_path_);
+                auto buff_identifier = BuffIdentifier(package_share_directory + buff_model_path_);
 
-                auto armor_tracker = TrackerFactory<ArmorTracker>::Create(armor_predict_duration_);
-                auto buff_tracker  = TrackerFactory<BuffTracker>::Create(buff_predict_duration_);
-
-                bool buff_enabled = false;
+                auto buff_enabled = false;
 
                 while (rclcpp::ok()) {
-                    auto img = img_capture.read();
-                    // auto timestamp = std::chrono::steady_clock::now();
-                    do {
-                        if (!buff_enabled && *buff_mode_) {
-                            buff_tracker->ResetAll();
-                        }
-                        buff_enabled = *buff_mode_;
+                    auto img       = img_capture.read();
+                    auto timestamp = std::chrono::steady_clock::now();
 
-                        if (!buff_enabled) {
-                            auto armors = armor_identifier->Identify(img, *color_);
-                            // auto armors3d = ArmorPnPSolver::SolveAll(armors);
-                            // if (auto target = armor_tracker.Update(armors3d, timestamp)) {
-                            //     timestamp_ = timestamp;
-                            //     target_    = target.release();
-                            //     break;
-                            // }
-                        } else {
+                    if (!buff_enabled && *buff_mode_) {
+                        // buff_tracker.ResetAll();
+                    }
+                    buff_enabled = *buff_mode_;
+
+                    if (!buff_enabled) {
+                        auto armors = armor_identifier.Identify(img, *color_);
+                        auto armor3d =
+                            ArmorPnPSolver::SolveAll(armors, *tf_, fx, fy, cx, cy, k1, k2, k3);
+
+                    } else {
+                        if (auto buff = buff_identifier.Identify(img)) {
+                            if (auto buff3d =
+                                    BuffPnPSolver::Solve(*buff, *tf_, fx, fy, cx, cy, k1, k2, k3)) {
+                                //
+                            }
                         }
-                    } while (false);
+                    }
                 }
             }};
-            return;
         }
 
         auto target = target_;
@@ -161,13 +165,15 @@ private:
     int64_t exposure_time_;
 
     Trajectory_Solvor trajectory_{};
-    Target* target_;
+    TargetInterface* target_;
 
     std::string armor_model_path_;
     std::string buff_model_path_;
 
     double pitch_error_;
     double yaw_error_;
+
+    double fx, fy, cx, cy, k1, k2, k3;
 };
 
 }; // namespace auto_aim

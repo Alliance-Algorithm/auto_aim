@@ -16,6 +16,7 @@
 
 #include "core/identifier/armor/armor.hpp"
 
+namespace auto_aim {
 struct ArmorPlate3d {
     ArmorID id;
     rmcs_description::OdomImu::Position position;
@@ -28,3 +29,4 @@ struct ArmorPlate3d {
         , position(std::move(position))
         , rotation(std::move(rotation)) {}
 };
+} // namespace auto_aim

@@ -11,16 +11,27 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
+#include <memory>
+#include <optional>
 
+#include "core/pnpsolver/buff/buff3d.hpp"
 #include "core/tracker/tracker.hpp"
 
-class BuffTracker : public Tracker {
+namespace auto_aim {
+class BuffTracker : public TrackerInterface {
 public:
     explicit BuffTracker(int64_t predict_duration);
-    std::unique_ptr<Target> Update(
-        const std::vector<ArmorPlate3d>& armors,
-        std::chrono::steady_clock::time_point timestamp) override;
+    ~BuffTracker();
+
+    std::unique_ptr<TargetInterface> Update(
+        const std::optional<BuffPlate3d>& buff, std::chrono::steady_clock::time_point timestamp);
 
     void ResetAll();
+
+private:
+    class Impl;
+    std::unique_ptr<Impl> pImpl_;
 };
+} // namespace auto_aim

@@ -13,7 +13,9 @@
 #include <opencv2/opencv.hpp>
 #include <rmcs_description/tf_description.hpp>
 
+namespace auto_aim {
 struct BuffPlate {
     // bl br tr tl
     std::vector<cv::Point2f> points;
 };
+} // namespace auto_aim

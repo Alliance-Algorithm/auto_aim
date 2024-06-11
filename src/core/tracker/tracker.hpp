@@ -1,5 +1,5 @@
 /**
- * @file track.hpp
+ * @file tracker.hpp
  * @author Lorenzo Feng (lorenzo.feng@njust.edu.cn)
  * @brief
  * @version 0.1
@@ -10,16 +10,16 @@
  */
 #pragma once
 
-#include <chrono>
 #include <memory>
 
-#include "core/pnpsolver/armor/armor3d.hpp"
 #include "core/tracker/target.hpp"
 
-class Tracker {
+namespace auto_aim {
+class TrackerInterface {
 public:
-    virtual ~Tracker() {}
-    virtual std::unique_ptr<Target> Update(
-        const std::vector<ArmorPlate3d>& armors,
-        std::chrono::steady_clock::time_point timestamp) = 0;
+    virtual ~TrackerInterface() {}
+
+    template <class... Args>
+    std::unique_ptr<TargetInterface> Update(Args... args);
 };
+} // namespace auto_aim

@@ -17,18 +17,17 @@ public:
      * \return 返回云台偏移量，格式为tuple[yaw, pitch]，单位弧度制，遵循右手定则。
      */
     static std::tuple<double, double> GetShotAngle(
-        Target& target, const double& speed, bool predict_movement = true, double time_shift = 0) {
+        TargetInterface& target, const double& speed, bool predict_movement = true,
+        double time_shift = 0) {
         std::tuple<double, double> result;
         auto& [yaw, pitch] = result;
         double fly_time    = 0;
         rmcs_description::OdomImu::Position pos;
         GetShotAngleInternal(target.Predict(time_shift), speed, yaw, pitch, fly_time);
-        if (predict_movement)
+        if (predict_movement) {
             GetShotAngleInternal(
                 pos = target.Predict(time_shift + fly_time), speed, yaw, pitch, fly_time);
-
-        // ros_util::PointBroadcast(pos);
-        // std::cout << fly_time;
+        }
 
         return result;
     }
