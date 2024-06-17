@@ -14,7 +14,7 @@
 
 class TargetInterface {
 public:
-    [[nodiscard]] virtual rmcs_description::OdomImu::Position Predict(double sec) = 0;
+    [[nodiscard]] virtual rmcs_description::OdomImu::Position Predict(double sec) const = 0;
 
 private:
 };

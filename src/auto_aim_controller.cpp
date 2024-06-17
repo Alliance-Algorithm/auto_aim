@@ -21,6 +21,7 @@
 #include "core/identifier/buff/buff_identifier.hpp"
 #include "core/pnpsolver/armor/armor_pnp_solver.hpp"
 #include "core/pnpsolver/buff/buff_pnp_solver.hpp"
+#include "core/tracker/armor/armor_tracker.hpp"
 #include "core/tracker/target.hpp"
 #include "core/trajectory/trajectory_solvor.hpp"
 
@@ -86,6 +87,8 @@ public:
                     ArmorIdentifier(package_share_directory + armor_model_path_);
                 auto buff_identifier = BuffIdentifier(package_share_directory + buff_model_path_);
 
+                auto armor_tracker = ArmorTracker(armor_predict_duration_);
+
                 auto buff_enabled = false;
 
                 while (rclcpp::ok()) {
@@ -101,6 +104,12 @@ public:
                         auto armors = armor_identifier.Identify(img, *color_);
                         auto armor3d =
                             ArmorPnPSolver::SolveAll(armors, *tf_, fx, fy, cx, cy, k1, k2, k3);
+
+                        if (auto target = armor_tracker.Update(armor3d, timestamp)) {
+                            timestamp_ = timestamp;
+                            target_    = target.release();
+                            break;
+                        }
 
                     } else {
                         if (auto buff = buff_identifier.Identify(img)) {
