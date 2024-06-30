@@ -32,12 +32,10 @@ set(EXECUTABLE_NAME ${PROJECT_NAME})
 find_package(OpenCV 4.5 REQUIRED)
 # find_package(HikCameraSDK REQUIRED)
 
-if (ENABLE_OPENVINO)
-    find_package(OpenVINO REQUIRED)
-    set(OpenVINO_LIB openvino::runtime)
-    find_package(Ceres REQUIRED)
-    set(Ceres_LIB Ceres::ceres)
-endif (ENABLE_OPENVINO)
+find_package(OpenVINO REQUIRED)
+set(OpenVINO_LIB openvino::runtime)
+find_package(Ceres REQUIRED)
+set(Ceres_LIB Ceres::ceres)
 
 # Include project source directory
 include_directories(${PROJECT_SOURCE_DIR}/src ${CONFIGURE_DIR_PATH})

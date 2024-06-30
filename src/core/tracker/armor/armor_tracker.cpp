@@ -2,7 +2,6 @@
 #include <map>
 
 #include <fast_tf/impl/cast.hpp>
-#include <rmcs_description/tf_description.hpp>
 
 #include "armor_tracker.hpp"
 #include "core/tracker/target.hpp"
@@ -131,8 +130,9 @@ private:
 
 class ArmorTracker::Impl {
 public:
-    explicit Impl(int64_t predict_duration)
-        : predict_duration_(predict_duration) {
+    explicit Impl(int64_t predict_duration, const rmcs_description::Tf& tf)
+        : predict_duration_(predict_duration)
+        , tf_(tf) {
         tracker_map_[ArmorID::Hero]        = {};
         tracker_map_[ArmorID::Engineer]    = {};
         tracker_map_[ArmorID::InfantryIII] = {};
@@ -188,7 +188,8 @@ public:
 
                 auto center = *fast_tf::cast<rmcs_description::MuzzleLink>(
                     rmcs_description::OdomImu::Position{
-                        tracker.ekf.x_(0), tracker.ekf.x_(2), tracker.ekf.x_(4)});
+                        tracker.ekf.x_(0), tracker.ekf.x_(2), tracker.ekf.x_(4)},
+                    tf_);
                 double angle = std::acos(center.dot(Eigen::Vector3d{1, 0, 0}) / center.norm());
 
                 if (angle < minimum_angle) {
@@ -378,10 +379,11 @@ private:
     // std::list<TrackerUnit> tracker_array_;
     std::map<ArmorID, std::vector<TrackerUnit>> tracker_map_;
     std::chrono::steady_clock::time_point last_update_;
+    const rmcs_description::Tf& tf_;
 };
 
-ArmorTracker::ArmorTracker(int64_t predict_duration)
-    : pImpl_(new Impl{predict_duration}) {}
+ArmorTracker::ArmorTracker(int64_t predict_duration, const rmcs_description::Tf& tf)
+    : pImpl_(new Impl{predict_duration, tf}) {}
 
 std::unique_ptr<TargetInterface> ArmorTracker::Update(
     const std::vector<ArmorPlate3d>& armors, std::chrono::steady_clock::time_point timestamp) {

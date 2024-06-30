@@ -44,8 +44,7 @@ public:
                     fast_tf::cast<rmcs_description::OdomImu>(
                         rmcs_description::CameraLink::Position{position}, tf),
                     fast_tf::cast<rmcs_description::OdomImu>(
-                        rmcs_description::CameraLink::Rotation{rotation}),
-                    tf);
+                        rmcs_description::CameraLink::Rotation{rotation}, tf));
             } else {
                 continue;
             }

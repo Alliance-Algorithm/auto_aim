@@ -14,7 +14,6 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
-#include <optional>
 
 #include "core/pnpsolver/buff/buff3d.hpp"
 #include "core/tracker/tracker.hpp"
@@ -25,8 +24,8 @@ public:
     explicit BuffTracker(int64_t predict_duration);
     ~BuffTracker();
 
-    std::unique_ptr<TargetInterface> Update(
-        const std::optional<BuffPlate3d>& buff, std::chrono::steady_clock::time_point timestamp);
+    std::unique_ptr<TargetInterface>
+        Update(const BuffPlate3d& buff, std::chrono::steady_clock::time_point timestamp);
 
     void ResetAll();
 

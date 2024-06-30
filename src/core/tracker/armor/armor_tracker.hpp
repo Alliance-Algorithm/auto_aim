@@ -22,7 +22,7 @@
 namespace auto_aim {
 class ArmorTracker : public TrackerInterface {
 public:
-    explicit ArmorTracker(int64_t predict_duration);
+    explicit ArmorTracker(int64_t predict_duration, const rmcs_description::Tf& tf);
     ~ArmorTracker();
 
     std::unique_ptr<TargetInterface> Update(

@@ -22,6 +22,7 @@
 #include "core/pnpsolver/armor/armor_pnp_solver.hpp"
 #include "core/pnpsolver/buff/buff_pnp_solver.hpp"
 #include "core/tracker/armor/armor_tracker.hpp"
+#include "core/tracker/buff/buff_tracker.hpp"
 #include "core/tracker/target.hpp"
 #include "core/trajectory/trajectory_solvor.hpp"
 
@@ -38,9 +39,9 @@ public:
 
         register_input("/predefined/update_count", update_count_);
         register_input("/tf", tf_);
-        register_input("/robot_color", color_);
-        register_input("/robot_id", robot_id_);
-        register_input("/auto_rune", buff_mode_);
+        // register_input("/robot_color", color_);
+        // register_input("/robot_id", robot_id_);
+        // register_input("/auto_rune", buff_mode_);
         register_output(
             "/gimbal/auto_aim/control_direction", control_direction_, Eigen::Vector3d::Zero());
 
@@ -72,7 +73,9 @@ public:
                 hikcamera::ImageCapturer::CameraProfile camera_profile;
                 camera_profile.exposure_time = std::chrono::milliseconds(exposure_time_);
                 camera_profile.gain          = 16.9807;
-                if (*robot_id_ == 7) {
+                if (robot_id_ == 7) {
+                    // if (*robot_id_ == 7) {
+
                     camera_profile.invert_image = true;
                 } else {
                     camera_profile.invert_image = false;
@@ -87,7 +90,8 @@ public:
                     ArmorIdentifier(package_share_directory + armor_model_path_);
                 auto buff_identifier = BuffIdentifier(package_share_directory + buff_model_path_);
 
-                auto armor_tracker = ArmorTracker(armor_predict_duration_);
+                auto armor_tracker = ArmorTracker(armor_predict_duration_, *tf_);
+                auto buff_tracker  = BuffTracker(buff_predict_duration_);
 
                 auto buff_enabled = false;
 
@@ -95,13 +99,18 @@ public:
                     auto img       = img_capture.read();
                     auto timestamp = std::chrono::steady_clock::now();
 
-                    if (!buff_enabled && *buff_mode_) {
-                        // buff_tracker.ResetAll();
+                    if (!buff_enabled && buff_mode_) {
+                        // if (!buff_enabled && *buff_mode_) {
+
+                        buff_tracker.ResetAll();
                     }
-                    buff_enabled = *buff_mode_;
+                    buff_enabled = buff_mode_;
+                    // buff_enabled = *buff_mode_;
 
                     if (!buff_enabled) {
-                        auto armors = armor_identifier.Identify(img, *color_);
+                        auto armors = armor_identifier.Identify(img, color_);
+                        // auto armors = armor_identifier.Identify(img, *color_);
+
                         auto armor3d =
                             ArmorPnPSolver::SolveAll(armors, *tf_, fx, fy, cx, cy, k1, k2, k3);
 
@@ -115,7 +124,11 @@ public:
                         if (auto buff = buff_identifier.Identify(img)) {
                             if (auto buff3d =
                                     BuffPnPSolver::Solve(*buff, *tf_, fx, fy, cx, cy, k1, k2, k3)) {
-                                //
+                                if (auto target = buff_tracker.Update(*buff3d, timestamp)) {
+                                    timestamp_ = timestamp;
+                                    target_    = target.release();
+                                    break;
+                                }
                             }
                         }
                     }
@@ -157,11 +170,15 @@ public:
     }
 
 private:
-    InputInterface<rmcs_core::msgs::RoboticColor> color_;
+    // InputInterface<rmcs_core::msgs::RoboticColor> color_;
     InputInterface<rmcs_description::Tf> tf_;
     InputInterface<size_t> update_count_;
-    InputInterface<uint8_t> robot_id_;
-    InputInterface<bool> buff_mode_;
+    // InputInterface<uint8_t> robot_id_;
+    // InputInterface<bool> buff_mode_;
+
+    rmcs_core::msgs::RoboticColor color_ = rmcs_core::msgs::RoboticColor::Blue;
+    uint8_t robot_id_                    = 7;
+    bool buff_mode_                      = false;
 
     OutputInterface<Eigen::Vector3d> control_direction_;
 
@@ -173,7 +190,7 @@ private:
     int64_t buff_predict_duration_;
     int64_t exposure_time_;
 
-    Trajectory_Solvor trajectory_{};
+    TrajectorySolver trajectory_{};
     TargetInterface* target_;
 
     std::string armor_model_path_;

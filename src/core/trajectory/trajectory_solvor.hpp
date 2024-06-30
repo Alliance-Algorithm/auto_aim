@@ -11,7 +11,7 @@
 
 #include "core/tracker/target.hpp"
 
-class Trajectory_Solvor {
+class TrajectorySolver {
 public:
     /*! 获取射击角度
      * \return 返回云台偏移量，格式为tuple[yaw, pitch]，单位弧度制，遵循右手定则。
