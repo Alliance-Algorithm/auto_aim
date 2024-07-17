@@ -15,6 +15,7 @@
 #include <opencv2/core/mat.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/time.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 #include "core/pnpsolver/armor/armor3d.hpp"
 

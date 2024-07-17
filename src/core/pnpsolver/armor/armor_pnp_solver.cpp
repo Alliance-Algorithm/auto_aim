@@ -1,7 +1,9 @@
-#include <fast_tf/impl/cast.hpp>
-#include <opencv2/core/mat.hpp>
+#include <cmath>
 
+#include <opencv2/core/mat.hpp>
 #include <opencv2/opencv.hpp>
+
+#include <fast_tf/impl/cast.hpp>
 #include <rmcs_description/tf_description.hpp>
 
 #include "armor_pnp_solver.hpp"
@@ -40,10 +42,17 @@ public:
                     Eigen::AngleAxisd{rvec_eigen.norm(), rvec_eigen.normalized()}
                 };
 
+                auto yaw   = atan(position.y() / position.x());
+                auto depth = position.norm();
+                auto pitch = asin(position.z() / depth);
+
+                auto corrected_depth = correct(yaw, depth, armor.is_large_armor);
+                auto corrected_pos   = rmcs_description::CameraLink::Position{
+                    corrected_depth * cos(pitch) * cos(yaw),
+                    corrected_depth * cos(pitch) * sin(yaw), corrected_depth * sin(pitch)};
+
                 armors3d.emplace_back(
-                    armor.id,
-                    fast_tf::cast<rmcs_description::OdomImu>(
-                        rmcs_description::CameraLink::Position{position}, tf),
+                    armor.id, fast_tf::cast<rmcs_description::OdomImu>(corrected_pos, tf),
                     fast_tf::cast<rmcs_description::OdomImu>(
                         rmcs_description::CameraLink::Rotation{rotation}, tf));
             } else {
@@ -87,6 +96,71 @@ public:
     }
 
 private:
+    static double correct(const double& yaw, const double& depth, const bool& is_large_armor) {
+        if (is_large_armor) {
+            auto& a1 = LargeArmorCorrectFactor[0];
+            auto& a2 = LargeArmorCorrectFactor[1];
+            auto& b1 = LargeArmorCorrectFactor[2];
+            auto& b2 = LargeArmorCorrectFactor[3];
+            auto& c1 = LargeArmorCorrectFactor[4];
+            auto& c2 = LargeArmorCorrectFactor[5];
+            auto& d  = LargeArmorCorrectFactor[6];
+            auto& e1 = LargeArmorCorrectFactor[7];
+            auto& e2 = LargeArmorCorrectFactor[8];
+            auto& e3 = LargeArmorCorrectFactor[9];
+            auto& e4 = LargeArmorCorrectFactor[10];
+            auto& e5 = LargeArmorCorrectFactor[11];
+            auto& e6 = LargeArmorCorrectFactor[12];
+            auto& f1 = LargeArmorCorrectFactor[13];
+            auto& f2 = LargeArmorCorrectFactor[14];
+
+            return c1 * -cos(yaw) + c2 * depth + e1 * depth * -cos(yaw)
+                 + e2 * depth * -cos(yaw) * -cos(yaw) + e3 * depth * depth * -cos(yaw)
+                 + e4 * depth * depth * -cos(yaw) * -cos(yaw)
+                 + e5 * depth * depth * -cos(yaw) * -cos(yaw) * -cos(yaw)
+                 + e6 * depth * depth * depth * -cos(yaw) * -cos(yaw) + d
+                 + a1 * -cos(yaw) * -cos(yaw) * -cos(yaw) + b1 * -cos(yaw) * -cos(yaw)
+                 + a2 * depth * depth * depth + b2 * depth * depth
+                 + f1 * -cos(yaw) * -cos(yaw) * -cos(yaw) * -cos(yaw)
+                 + f2 * depth * depth * depth * depth;
+        } else {
+            auto& a1 = NormalArmorCorrectFactor[0];
+            auto& a2 = NormalArmorCorrectFactor[1];
+            auto& b1 = NormalArmorCorrectFactor[2];
+            auto& b2 = NormalArmorCorrectFactor[3];
+            auto& c1 = NormalArmorCorrectFactor[4];
+            auto& c2 = NormalArmorCorrectFactor[5];
+            auto& d  = NormalArmorCorrectFactor[6];
+            auto& e1 = NormalArmorCorrectFactor[7];
+            auto& e2 = NormalArmorCorrectFactor[8];
+            auto& e3 = NormalArmorCorrectFactor[9];
+            auto& e4 = NormalArmorCorrectFactor[10];
+            auto& e5 = NormalArmorCorrectFactor[11];
+            auto& e6 = NormalArmorCorrectFactor[12];
+            auto& f1 = NormalArmorCorrectFactor[13];
+            auto& f2 = NormalArmorCorrectFactor[14];
+
+            return c1 * -cos(yaw) + c2 * depth + e1 * depth * -cos(yaw)
+                 + e2 * depth * -cos(yaw) * -cos(yaw) + e3 * depth * depth * -cos(yaw)
+                 + e4 * depth * depth * -cos(yaw) * -cos(yaw)
+                 + e5 * depth * depth * -cos(yaw) * -cos(yaw) * -cos(yaw)
+                 + e6 * depth * depth * depth * -cos(yaw) * -cos(yaw) + d
+                 + a1 * -cos(yaw) * -cos(yaw) * -cos(yaw) + b1 * -cos(yaw) * -cos(yaw)
+                 + a2 * depth * depth * depth + b2 * depth * depth
+                 + f1 * -cos(yaw) * -cos(yaw) * -cos(yaw) * -cos(yaw)
+                 + f2 * depth * depth * depth * depth;
+        }
+    }
+
+    inline static const double LargeArmorCorrectFactor[] = {
+        -5.75499912e+05, 6.24999075e-01,  8.55156294e+05,  -1.31784196e+04, -5.64802294e+05,
+        -3.62809911e+02, 7.35939798e+02,  -3.72008321e+02, 4.03873153e+04,  -4.12562293e+04,
+        1.40472334e+04,  -5.89194756e-01, 1.45248168e+05,  -3.82473750e-03, 1.39897763e+05};
+    inline static const double NormalArmorCorrectFactor[] = {
+        9.20311964e+03,  9.13950159e-01,  -6.07520262e+03, -5.74549783e+03, -9.09107445e+02,
+        -1.91307592e+02, 4.05636080e+02,  -2.13223192e+02, 1.77120913e+04,  -1.82083300e+04,
+        6.24168392e+03,  -8.96730075e-01, -3.63700027e+03, -1.70822160e-03, 1.41813817e+03};
+
     inline constexpr static const double MaxArmorDistance = 15.0;
 
     inline constexpr static const double NormalArmorWidth = 134, NormalArmorHeight = 56,
